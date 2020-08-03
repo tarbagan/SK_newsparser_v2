@@ -2,9 +2,10 @@ import requests
 from bs4 import BeautifulSoup as bs
 import re
 
-poisk = 'грабеж'
+poisk = 'женщина'
 
 def get_url():
+    """Обрабатываем пагинацию и формируем ссылки"""
     page = set()
     url = f"https://tuva.sledcom.ru/search/?q={poisk}&sort=date&page="
     r = requests.get(url)
@@ -15,10 +16,29 @@ def get_url():
         page.add(url+str(i))
     return page
 
-for get in get_url():
-    r = requests.get(get,timeout=15)
+
+def parsing(soup):
+    """Парсинг данных"""
+    def clear(text):
+        """Чистим текст"""
+        return re.sub(r'[\ \n]{2,}', '', text)
+
+    news_all = []
+    for i in soup.findAll('div', {'class': 'bl-item-holder'}):
+        title = i.find('div', {'class': 'bl-item-title'}).text
+        date = i.find('div', {'class': 'bl-item-date'}).text
+        title = clear(title)
+        date = clear(date)[9:]
+        news = {'date': date, 'title': title}
+        news_all.append(news)
+    return news_all
+
+
+urls = get_url()
+print (f'Начинаем парсинг {len(urls)} страниц\n----------------------------')
+for get in urls:
+    r = requests.get(get, timeout=15)
     soup = bs(r.text, 'lxml')
-    for t in soup.findAll('div',{'class':'bl-item-title'}):
-        tit = (t.text)
-        tit = re.sub(r'[\ \n]{2,}', '', tit)
-        print(tit)
+    for i in (parsing(soup)):
+        print(i)
+
